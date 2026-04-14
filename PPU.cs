@@ -59,11 +59,23 @@ public class PPU
     private int MapNametableIndex(ushort addr)
     {
         int table = (addr >> 10) & 0x03;
-        bool vertical = _bus.cartridge?.VerticalMirroring ?? true;
+        
+        MirrorMode mode = _bus.cartridge?.Mapper?.MirrorMode ?? MirrorMode.Hardware;
 
-        if (vertical)
-            return table & 1;
-        return table >> 1;
+        if (mode == MirrorMode.Hardware)
+        {
+            bool vertical = _bus.cartridge?.VerticalMirroring ?? true;
+            mode = vertical ? MirrorMode.Vertical : MirrorMode.Horizontal;
+        }
+        
+        return mode switch
+        {
+            MirrorMode.Vertical => table & 1,
+            MirrorMode.Horizontal => table >> 1,
+            MirrorMode.SingleScreenLower => 0,
+            MirrorMode.SingleScreenUpper => 1,
+            _ => table & 1
+        };
     }
 
     private bool TryGetSpritePixel(int x, int y, out byte palette, out bool priority, out byte pixel, out bool isSpriteZero)

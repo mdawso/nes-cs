@@ -2,10 +2,21 @@
 
 namespace nes;
 
+public enum MirrorMode
+{
+    Hardware,
+    Horizontal,
+    Vertical,
+    SingleScreenLower,
+    SingleScreenUpper
+}
+
 public abstract class Mapper
 {
     protected byte prgBanks;
     protected byte chrBanks;
+
+    public abstract MirrorMode MirrorMode { get; }
 
     public Mapper(byte prgBanks, byte chrBanks)
     {
@@ -22,6 +33,8 @@ public abstract class Mapper
 public class Mapper000 : Mapper
 {
     public Mapper000(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks) { }
+
+    public override MirrorMode MirrorMode => MirrorMode.Hardware; 
 
     public override bool MapCpuRead(ushort addr, out uint mappedAddr)
     {
@@ -80,6 +93,22 @@ public class Mapper001 : Mapper
     private uint _prgBankOffset1;
     private uint _chrBankOffset0;
     private uint _chrBankOffset1;
+
+    public override MirrorMode MirrorMode
+    {
+        get
+        {
+            int mode = _controlRegister & 0x03;
+            return mode switch
+            {
+                0 => MirrorMode.SingleScreenLower,
+                1 => MirrorMode.SingleScreenUpper,
+                2 => MirrorMode.Vertical,
+                3 => MirrorMode.Horizontal,
+                _ => MirrorMode.Hardware
+            };
+        }
+    }
 
     public Mapper001(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks)
     {
