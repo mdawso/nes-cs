@@ -250,3 +250,114 @@ public class Mapper001 : Mapper
         }
     }
 }
+
+public class Mapper002 : Mapper
+{
+    private byte _prgBankSelect = 0;
+
+    public Mapper002(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks) { }
+
+    public override MirrorMode MirrorMode => MirrorMode.Hardware;
+
+    public override bool MapCpuRead(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr >= 0x8000 && addr <= 0xBFFF)
+        {
+            mappedAddr = (uint)(_prgBankSelect * 0x4000) + (uint)(addr & 0x3FFF);
+            return true;
+        }
+        if (addr >= 0xC000 && addr <= 0xFFFF)
+        {
+            mappedAddr = (uint)((prgBanks - 1) * 0x4000) + (uint)(addr & 0x3FFF);
+            return true;
+        }
+        return false;
+    }
+
+    public override bool MapCpuWrite(ushort addr, out uint mappedAddr, byte data = 0)
+    {
+        mappedAddr = 0;
+        if (addr >= 0x8000 && addr <= 0xFFFF)
+        {
+            _prgBankSelect = (byte)(data & 0x0F);
+            return false;
+        }
+        return false;
+    }
+
+    public override bool MapPpuRead(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr <= 0x1FFF)
+        {
+            mappedAddr = addr;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool MapPpuWrite(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr <= 0x1FFF && chrBanks == 0)
+        {
+            mappedAddr = addr;
+            return true;
+        }
+        return false;
+    }
+}
+
+public class Mapper003 : Mapper
+{
+    private byte _chrBankSelect = 0;
+
+    public Mapper003(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks) { }
+
+    public override MirrorMode MirrorMode => MirrorMode.Hardware;
+
+    public override bool MapCpuRead(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr >= 0x8000)
+        {
+            mappedAddr = (uint)(addr & (prgBanks > 1 ? 0x7FFF : 0x3FFF));
+            return true;
+        }
+        return false;
+    }
+
+    public override bool MapCpuWrite(ushort addr, out uint mappedAddr, byte data = 0)
+    {
+        mappedAddr = 0;
+        if (addr >= 0x8000)
+        {
+            _chrBankSelect = (byte)(data & 0x03);
+            return false;
+        }
+        return false;
+    }
+
+    public override bool MapPpuRead(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr <= 0x1FFF)
+        {
+            mappedAddr = (uint)(_chrBankSelect * 0x2000) + addr;
+            return true;
+        }
+        return false;
+    }
+
+    public override bool MapPpuWrite(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr <= 0x1FFF && chrBanks == 0)
+        {
+            mappedAddr = addr;
+            return true;
+        }
+        return false;
+    }
+}

@@ -39,12 +39,12 @@ public class Bus
             case 1:
                 mapper = new Mapper001(cartridge.PrgBanks, cartridge.ChrBanks);
                 break;
-            // case 2:
-            //     mapper = new Mapper002(cartridge.PrgBanks, cartridge.ChrBanks);
-            //     break;
-            // case 3:
-            //     mapper = new Mapper003(cartridge.PrgBanks, cartridge.ChrBanks);
-            //     break;
+            case 2:
+                mapper = new Mapper002(cartridge.PrgBanks, cartridge.ChrBanks);
+                break;
+            case 3:
+                mapper = new Mapper003(cartridge.PrgBanks, cartridge.ChrBanks);
+                break;
             // case 4:
             //     mapper = new Mapper004(cartridge.PrgBanks, cartridge.ChrBanks);
             //     break;

@@ -629,6 +629,7 @@ public class CPU
                 addr = AddrAbsoluteX(out pageCrossed); cycles += 4 + (pageCrossed ? 1 : 0); break;
 
             default:
+                Console.WriteLine($"Invalid Opcode: {opcode}");
                 cycles += 2;
                 break;
         }
