@@ -11,10 +11,24 @@ public class Program
 
         Bus bus = new Bus();
 
+        bool show_err_text = false;
+        string err_text = string.Empty;
+
         if (args.Length > 0)
         {
-            Cartridge cart = new Cartridge(args[0]);
-            bus.InsertCartridge(cart);
+            try
+            {
+                Cartridge cart = new Cartridge(args[0]);
+                bus.InsertCartridge(cart);
+            } catch (Exception e)
+            {
+                err_text = e.Message;
+                show_err_text = true;
+            }
+        } else
+        {
+            err_text = "No ROM Loaded.";
+            show_err_text = true;
         }
 
         Image screenImage = Raylib.GenImageColor(256, 240, Color.Black);
@@ -49,6 +63,8 @@ public class Program
             Raylib.ClearBackground(Color.Black);
 
             Raylib.DrawTextureEx(screenTexture, new System.Numerics.Vector2(0, 0), 0.0f, 2.0f, Color.White);
+
+            if (show_err_text) Raylib.DrawText(err_text, 10, 10, 24, Color.Red);
 
             Raylib.EndDrawing();
         }

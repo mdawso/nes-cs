@@ -5,9 +5,7 @@ namespace nes;
 public class Bus
 {
     public static byte LowByte(ushort word) => (byte)(word & 0xFF);
-
     public static byte HighByte(ushort word) => (byte)((word >> 8) & 0xFF);
-
     public static ushort MakeWord(byte low, byte high) => (ushort)((high << 8) | low);
 
     private byte[] _ram = new byte[2048];
@@ -16,6 +14,7 @@ public class Bus
     public PPU ppu;
     public APU apu;
     public Cartridge? cartridge;
+    public Mapper? mapper;
 
     public byte controllerState;
     private byte _controllerShift;
@@ -31,13 +30,27 @@ public class Bus
     public void InsertCartridge(Cartridge cart)
     {
         cartridge = cart;
+
+        switch (cartridge.MapperId)
+        {
+            case 0:
+                mapper = new Mapper000(cartridge.PrgBanks, cartridge.ChrBanks);
+                break;
+            case 1:
+                mapper = new Mapper001(cartridge.PrgBanks, cartridge.ChrBanks);
+                break;
+            default:
+                throw new Exception($"Mapper {cartridge.MapperId} not supported.");
+        }
+
+        cartridge.Mapper = mapper;
         cpu.Reset();
     }
 
     public byte ReadByte(ushort addr)
     {
-        if (cartridge != null && cartridge.CpuRead(addr, out byte data))
-            return data;
+        if (mapper != null && cartridge != null && mapper.MapCpuRead(addr, out uint mappedAddr))
+            return cartridge.ReadPrg(mappedAddr);
 
         if (addr <= 0x1FFF)
             return _ram[addr & 0x07FF];
@@ -56,8 +69,11 @@ public class Bus
 
     public void WriteByte(ushort addr, byte val)
     {
-        if (cartridge != null && cartridge.CpuWrite(addr, val))
+        if (mapper != null && cartridge != null && mapper.MapCpuWrite(addr, out uint mappedAddr, val))
+        {
+            cartridge.WritePrg(mappedAddr, val);
             return;
+        }
 
         if (addr <= 0x1FFF)
             _ram[addr & 0x07FF] = val;
@@ -102,7 +118,7 @@ public class Bus
             int cpuCyclesBefore = cpu.cycles;
             cpu.ExecuteInstruction();
             int cyclesElapsed = cpu.cycles - cpuCyclesBefore;
-            
+
             ppu.CatchUp(cyclesElapsed * 3);
             apu.Tick(cyclesElapsed);
         }

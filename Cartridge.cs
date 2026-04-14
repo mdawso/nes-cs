@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace nes;
 
@@ -6,6 +7,8 @@ public class Cartridge
 {
     private byte[] _prgMemory;
     private byte[] _chrMemory;
+    public byte[] PrgRam = new byte[8192];
+
     private byte _mapperId;
     private byte _prgBanks;
     private byte _chrBanks;
@@ -13,6 +16,11 @@ public class Cartridge
     private bool _verticalMirroring;
 
     public bool VerticalMirroring => _verticalMirroring;
+    public byte MapperId => _mapperId;
+    public byte PrgBanks => _prgBanks;
+    public byte ChrBanks => _chrBanks;
+
+    public Mapper? Mapper { get; set; }
 
     public Cartridge(string fileName)
     {
@@ -41,33 +49,39 @@ public class Cartridge
             _chrMemory = br.ReadBytes(_chrBanks * 8192);
     }
 
-    public bool CpuRead(ushort addr, out byte data)
+    public byte ReadPrg(uint mappedAddr)
     {
-        data = 0;
-        if (addr >= 0x8000 && addr <= 0xFFFF)
-        {
-            ushort mappedAddr = _prgBanks > 1 ? (ushort)(addr & 0x7FFF) : (ushort)(addr & 0x3FFF);
-            data = _prgMemory[mappedAddr];
-            return true;
-        }
-        return false;
+        // 0x80000000 bit signals that this is a PRG RAM address
+        if ((mappedAddr & 0x80000000) != 0)
+            return PrgRam[mappedAddr & 0x1FFF];
+
+        return _prgMemory[mappedAddr];
     }
 
-    public bool CpuWrite(ushort addr, byte data)
+    public void WritePrg(uint mappedAddr, byte data)
     {
-        if (addr >= 0x8000 && addr <= 0xFFFF)
-        {
-            return true;
-        }
-        return false;
+        if ((mappedAddr & 0x80000000) != 0)
+            PrgRam[mappedAddr & 0x1FFF] = data;
+        else
+            _prgMemory[mappedAddr] = data;
+    }
+
+    public byte ReadChr(uint mappedAddr)
+    {
+        return _chrMemory[mappedAddr];
+    }
+
+    public void WriteChr(uint mappedAddr, byte data)
+    {
+        _chrMemory[mappedAddr] = data;
     }
 
     public bool PpuRead(ushort addr, out byte data)
     {
         data = 0;
-        if (addr >= 0x0000 && addr <= 0x1FFF)
+        if (Mapper != null && Mapper.MapPpuRead(addr, out uint mappedAddr))
         {
-            data = _chrMemory[addr];
+            data = _chrMemory[mappedAddr];
             return true;
         }
         return false;
@@ -75,16 +89,11 @@ public class Cartridge
 
     public bool PpuWrite(ushort addr, byte data)
     {
-        if (addr >= 0x0000 && addr <= 0x1FFF)
+        if (Mapper != null && Mapper.MapPpuWrite(addr, out uint mappedAddr))
         {
-            if (_chrBanks == 0)
-            {
-                _chrMemory[addr] = data;
-                return true;
-            }
+            _chrMemory[mappedAddr] = data;
             return true;
         }
         return false;
     }
 }
-
