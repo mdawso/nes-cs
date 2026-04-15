@@ -361,3 +361,134 @@ public class Mapper003 : Mapper
         return false;
     }
 }
+
+public class Mapper004 : Mapper
+{
+    private byte _targetRegister = 0;
+    private bool _prgBankMode = false;
+    private bool _chrInversion = false;
+    private uint[] _registers = new uint[8];
+    private uint[] _prgBankOffsets = new uint[4];
+    private uint[] _chrBankOffsets = new uint[8];
+
+    public Mapper004(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks)
+    {
+        UpdateOffsets();
+    }
+
+    public override MirrorMode MirrorMode => MirrorMode.Hardware;
+
+    public override bool MapCpuRead(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr >= 0x6000 && addr <= 0x7FFF)
+        {
+            mappedAddr = 0x80000000 | (uint)(addr & 0x1FFF);
+            return true;
+        }
+        if (addr >= 0x8000)
+        {
+            ushort bank = (ushort)((addr - 0x8000) / 0x2000);
+            mappedAddr = _prgBankOffsets[bank] + (uint)(addr & 0x1FFF);
+            return true;
+        }
+        return false;
+    }
+
+    public override bool MapCpuWrite(ushort addr, out uint mappedAddr, byte data = 0)
+    {
+        mappedAddr = 0;
+        if (addr >= 0x6000 && addr <= 0x7FFF)
+        {
+            mappedAddr = 0x80000000 | (uint)(addr & 0x1FFF);
+            return true;
+        }
+        if (addr >= 0x8000)
+        {
+            bool isEven = (addr & 1) == 0;
+            if (addr <= 0x9FFF)
+            {
+                if (isEven)
+                {
+                    _targetRegister = (byte)(data & 0x07);
+                    _prgBankMode = (data & 0x40) != 0;
+                    _chrInversion = (data & 0x80) != 0;
+                }
+                else
+                {
+                    _registers[_targetRegister] = data;
+                }
+                UpdateOffsets();
+            }
+            return false;
+        }
+        return false;
+    }
+
+    public override bool MapPpuRead(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr <= 0x1FFF)
+        {
+            ushort bank = (ushort)(addr / 0x0400);
+            mappedAddr = _chrBankOffsets[bank] + (uint)(addr & 0x03FF);
+            return true;
+        }
+        return false;
+    }
+
+    public override bool MapPpuWrite(ushort addr, out uint mappedAddr)
+    {
+        mappedAddr = 0;
+        if (addr <= 0x1FFF && chrBanks == 0)
+        {
+            mappedAddr = addr;
+            return true;
+        }
+        return false;
+    }
+
+    private void UpdateOffsets()
+    {
+        uint totalPrg = (uint)(prgBanks * 16384);
+        uint totalChr = (uint)(Math.Max((byte)1, chrBanks) * 8192);
+
+        if (_prgBankMode)
+        {
+            _prgBankOffsets[0] = ((uint)(prgBanks * 2 - 2) * 0x2000) % totalPrg;
+            _prgBankOffsets[1] = (_registers[7] * 0x2000) % totalPrg;
+            _prgBankOffsets[2] = (_registers[6] * 0x2000) % totalPrg;
+            _prgBankOffsets[3] = ((uint)(prgBanks * 2 - 1) * 0x2000) % totalPrg;
+        }
+        else
+        {
+            _prgBankOffsets[0] = (_registers[6] * 0x2000) % totalPrg;
+            _prgBankOffsets[1] = (_registers[7] * 0x2000) % totalPrg;
+            _prgBankOffsets[2] = ((uint)(prgBanks * 2 - 2) * 0x2000) % totalPrg;
+            _prgBankOffsets[3] = ((uint)(prgBanks * 2 - 1) * 0x2000) % totalPrg;
+        }
+
+        if (_chrInversion)
+        {
+            _chrBankOffsets[0] = (_registers[2] * 0x0400) % totalChr;
+            _chrBankOffsets[1] = (_registers[3] * 0x0400) % totalChr;
+            _chrBankOffsets[2] = (_registers[4] * 0x0400) % totalChr;
+            _chrBankOffsets[3] = (_registers[5] * 0x0400) % totalChr;
+            _chrBankOffsets[4] = ((_registers[0] & 0xFE) * 0x0400) % totalChr;
+            _chrBankOffsets[5] = ((_registers[0] | 0x01) * 0x0400) % totalChr;
+            _chrBankOffsets[6] = ((_registers[1] & 0xFE) * 0x0400) % totalChr;
+            _chrBankOffsets[7] = ((_registers[1] | 0x01) * 0x0400) % totalChr;
+        }
+        else
+        {
+            _chrBankOffsets[0] = ((_registers[0] & 0xFE) * 0x0400) % totalChr;
+            _chrBankOffsets[1] = ((_registers[0] | 0x01) * 0x0400) % totalChr;
+            _chrBankOffsets[2] = ((_registers[1] & 0xFE) * 0x0400) % totalChr;
+            _chrBankOffsets[3] = ((_registers[1] | 0x01) * 0x0400) % totalChr;
+            _chrBankOffsets[4] = (_registers[2] * 0x0400) % totalChr;
+            _chrBankOffsets[5] = (_registers[3] * 0x0400) % totalChr;
+            _chrBankOffsets[6] = (_registers[4] * 0x0400) % totalChr;
+            _chrBankOffsets[7] = (_registers[5] * 0x0400) % totalChr;
+        }
+    }
+}

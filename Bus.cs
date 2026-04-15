@@ -45,9 +45,9 @@ public class Bus
             case 3:
                 mapper = new Mapper003(cartridge.PrgBanks, cartridge.ChrBanks);
                 break;
-            // case 4:
-            //     mapper = new Mapper004(cartridge.PrgBanks, cartridge.ChrBanks);
-            //     break;
+            case 4:
+                mapper = new Mapper004(cartridge.PrgBanks, cartridge.ChrBanks);
+                break;
             default:
                 throw new Exception($"Mapper {cartridge.MapperId} not supported.");
         }
