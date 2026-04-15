@@ -457,6 +457,14 @@ public class PPU
                     TransferAddressX();
                 }
 
+                if (cycle == 260 && scanline < 240)
+                {
+                    if ((_mask & 0x18) != 0) // Only tick IRQs if rendering enabled.
+                    {
+                        _bus.mapper?.Scanline();
+                    }
+                }
+
                 if (scanline == -1 && cycle >= 280 && cycle < 305)
                 {
                     TransferAddressY();

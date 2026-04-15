@@ -130,6 +130,11 @@ public class Bus
 
             ppu.CatchUp(cyclesElapsed * 3);
             apu.Tick(cyclesElapsed);
+
+            if (mapper != null && mapper.irqActive)
+            {
+                cpu.IRQ();
+            }
         }
     }
 }

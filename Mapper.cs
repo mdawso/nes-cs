@@ -16,6 +16,8 @@ public abstract class Mapper
     protected byte prgBanks;
     protected byte chrBanks;
 
+    public bool irqActive = false;
+
     public abstract MirrorMode MirrorMode { get; }
 
     public Mapper(byte prgBanks, byte chrBanks)
@@ -28,6 +30,9 @@ public abstract class Mapper
     public abstract bool MapCpuWrite(ushort addr, out uint mappedAddr, byte data = 0);
     public abstract bool MapPpuRead(ushort addr, out uint mappedAddr);
     public abstract bool MapPpuWrite(ushort addr, out uint mappedAddr);
+
+    public virtual void Scanline() { }
+    public virtual void ClearIrq() { irqActive = false; }
 }
 
 public class Mapper000 : Mapper
@@ -371,6 +376,12 @@ public class Mapper004 : Mapper
     private uint[] _prgBankOffsets = new uint[4];
     private uint[] _chrBankOffsets = new uint[8];
 
+    // IRQ variables
+    private byte _irqLatch = 0;
+    private byte _irqCounter = 0;
+    private bool _irqEnable = false;
+    private bool _irqReload = false;
+
     public Mapper004(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks)
     {
         UpdateOffsets();
@@ -420,6 +431,27 @@ public class Mapper004 : Mapper
                 }
                 UpdateOffsets();
             }
+            else if (addr >= 0xA000 && addr <= 0xBFFF)
+            {
+                // PRG RAM protect / Mirroring
+            }
+            else if (addr >= 0xC000 && addr <= 0xDFFF)
+            {
+                if (isEven) _irqLatch = data;
+                else _irqReload = true;
+            }
+            else if (addr >= 0xE000 && addr <= 0xFFFF)
+            {
+                if (isEven)
+                {
+                    _irqEnable = false;
+                    irqActive = false;
+                }
+                else
+                {
+                    _irqEnable = true;
+                }
+            }
             return false;
         }
         return false;
@@ -446,6 +478,24 @@ public class Mapper004 : Mapper
             return true;
         }
         return false;
+    }
+
+    public override void Scanline()
+    {
+        if (_irqCounter == 0 || _irqReload)
+        {
+            _irqCounter = _irqLatch;
+            _irqReload = false;
+        }
+        else
+        {
+            _irqCounter--;
+        }
+
+        if (_irqCounter == 0 && _irqEnable)
+        {
+            irqActive = true;
+        }
     }
 
     private void UpdateOffsets()
