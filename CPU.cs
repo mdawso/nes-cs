@@ -456,8 +456,7 @@ public class CPU
             case 0x00:
                 program_counter++;
                 PushWord(program_counter);
-                status.SetFlag(CpuFlags.Break, false);
-                Push((byte)(status.Value | (byte)CpuFlags.Unused));
+                Push((byte)(status.Value | (byte)CpuFlags.Break | (byte)CpuFlags.Unused));
                 status.SetFlag(CpuFlags.InterruptDisable, true);
                 program_counter = ReadWord(0xFFFE);
                 cycles += 7;

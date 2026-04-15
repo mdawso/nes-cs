@@ -65,6 +65,8 @@ public class Bus
             return _ram[addr & 0x07FF];
         else if (addr >= 0x2000 && addr <= 0x3FFF)
             return ppu.CpuRead((ushort)(addr & 0x0007));
+        else if (addr == 0x4015)
+            return apu.ReadRegister(addr);
         else if (addr == 0x4016)
         {
             byte result = (byte)((_controllerShift & 1) | 0x40);
@@ -99,6 +101,10 @@ public class Bus
             if (cpu.cycles % 2 == 1)
                 cpu.cycles++;
         }
+        else if (addr == 0x4015 || addr == 0x4017)
+        {
+            apu.WriteRegister(addr, val);
+        }
         else if (addr == 0x4016)
         {
             _controllerStrobe = (byte)(val & 1);
@@ -125,16 +131,21 @@ public class Bus
         while (!ppu.frameComplete)
         {
             int cpuCyclesBefore = cpu.cycles;
-            cpu.ExecuteInstruction();
+
+            if ((mapper != null && mapper.irqActive) || apu.irqActive)
+            {
+                cpu.IRQ();
+            }
+
+            if (cpu.cycles == cpuCyclesBefore)
+            {
+                cpu.ExecuteInstruction();
+            }
+
             int cyclesElapsed = cpu.cycles - cpuCyclesBefore;
 
             ppu.CatchUp(cyclesElapsed * 3);
             apu.Tick(cyclesElapsed);
-
-            if (mapper != null && mapper.irqActive)
-            {
-                cpu.IRQ();
-            }
         }
     }
 }
