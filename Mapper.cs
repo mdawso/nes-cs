@@ -381,20 +381,28 @@ public class Mapper004 : Mapper
     private bool _irqEnable = false;
     private bool _irqReload = false;
 
+    private MirrorMode _mirrorMode = MirrorMode.Hardware;
+    private bool _prgRamEnable = true;
+    private bool _prgRamProtect = false;
+
     public Mapper004(byte prgBanks, byte chrBanks) : base(prgBanks, chrBanks)
     {
         UpdateOffsets();
     }
 
-    public override MirrorMode MirrorMode => MirrorMode.Hardware;
+    public override MirrorMode MirrorMode => _mirrorMode;
 
     public override bool MapCpuRead(ushort addr, out uint mappedAddr)
     {
         mappedAddr = 0;
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
-            mappedAddr = 0x80000000 | (uint)(addr & 0x1FFF);
-            return true;
+            if (_prgRamEnable)
+            {
+                mappedAddr = 0x80000000 | (uint)(addr & 0x1FFF);
+                return true;
+            }
+            return false;
         }
         if (addr >= 0x8000)
         {
@@ -410,8 +418,12 @@ public class Mapper004 : Mapper
         mappedAddr = 0;
         if (addr >= 0x6000 && addr <= 0x7FFF)
         {
-            mappedAddr = 0x80000000 | (uint)(addr & 0x1FFF);
-            return true;
+            if (_prgRamEnable && !_prgRamProtect)
+            {
+                mappedAddr = 0x80000000 | (uint)(addr & 0x1FFF);
+                return true;
+            }
+            return false;
         }
         if (addr >= 0x8000)
         {
@@ -432,7 +444,15 @@ public class Mapper004 : Mapper
             }
             else if (addr >= 0xA000 && addr <= 0xBFFF)
             {
-                // PRG RAM protect / Mirroring
+                if (isEven)
+                {
+                    _mirrorMode = (data & 1) == 0 ? MirrorMode.Vertical : MirrorMode.Horizontal;
+                }
+                else
+                {
+                    _prgRamEnable = (data & 0x80) != 0;
+                    _prgRamProtect = (data & 0x40) != 0;
+                }
             }
             else if (addr >= 0xC000 && addr <= 0xDFFF)
             {
