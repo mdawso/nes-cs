@@ -7,6 +7,7 @@ public class Program
     static void Main(string[] args)
     {
         Raylib.InitWindow(256 * 2, 240 * 2, "nes");
+        Raylib.SetWindowState(ConfigFlags.ResizableWindow);
         Raylib.SetTargetFPS(60);
 
         Bus bus = new Bus();
@@ -58,7 +59,11 @@ public class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
 
-            Raylib.DrawTextureEx(screenTexture, new System.Numerics.Vector2(0, 0), 0.0f, 2.0f, Color.White);
+            float scale = Math.Min((float)Raylib.GetScreenWidth() / 256, (float)Raylib.GetScreenHeight() / 240);
+            float offsetX = (Raylib.GetScreenWidth() - (256 * scale)) / 2.0f;
+            float offsetY = (Raylib.GetScreenHeight() - (240 * scale)) / 2.0f;
+
+            Raylib.DrawTextureEx(screenTexture, new System.Numerics.Vector2(offsetX, offsetY), 0.0f, scale, Color.White);
 
             if (err_text != string.Empty) Raylib.DrawText(err_text, 10, 10, 24, Color.Red);
 

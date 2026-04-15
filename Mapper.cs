@@ -376,7 +376,6 @@ public class Mapper004 : Mapper
     private uint[] _prgBankOffsets = new uint[4];
     private uint[] _chrBankOffsets = new uint[8];
 
-    // IRQ variables
     private byte _irqLatch = 0;
     private byte _irqCounter = 0;
     private bool _irqEnable = false;
