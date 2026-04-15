@@ -62,8 +62,6 @@ public class Cartridge
     {
         if ((mappedAddr & 0x80000000) != 0)
             PrgRam[mappedAddr & 0x1FFF] = data;
-        else
-            _prgMemory[mappedAddr] = data;
     }
 
     public byte ReadChr(uint mappedAddr)
