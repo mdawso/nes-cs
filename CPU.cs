@@ -512,12 +512,14 @@ public class CPU
             case 0xC3: 
             case 0xD3: 
             case 0xCF: 
-            case 0xDF: 
+            case 0xDF:
+            case 0xDB:
                 if (opcode == 0xC7) { addr = AddrZeroPage(); cycles += 5; }
                 else if (opcode == 0xD7) { addr = AddrZeroPageX(); cycles += 6; }
                 else if (opcode == 0xC3) { addr = AddrIndirectX(); cycles += 8; }
                 else if (opcode == 0xD3) { addr = AddrIndirectY(out _); cycles += 8; }
                 else if (opcode == 0xCF) { addr = AddrAbsolute(); cycles += 6; }
+                else if (opcode == 0xDB) { addr = AddrAbsoluteY(out _); cycles += 7; }
                 else { addr = AddrAbsoluteX(out _); cycles += 7; }
                 res = DEC(Read(addr));
                 Write(addr, res);
@@ -529,12 +531,14 @@ public class CPU
             case 0xE3: 
             case 0xF3: 
             case 0xEF: 
-            case 0xFF: 
+            case 0xFF:
+            case 0xFB:
                 if (opcode == 0xE7) { addr = AddrZeroPage(); cycles += 5; }
                 else if (opcode == 0xF7) { addr = AddrZeroPageX(); cycles += 6; }
                 else if (opcode == 0xE3) { addr = AddrIndirectX(); cycles += 8; }
                 else if (opcode == 0xF3) { addr = AddrIndirectY(out _); cycles += 8; }
                 else if (opcode == 0xEF) { addr = AddrAbsolute(); cycles += 6; }
+                else if (opcode == 0xFB) { addr = AddrAbsoluteY(out _); cycles += 7; }
                 else { addr = AddrAbsoluteX(out _); cycles += 7; }
                 res = INC(Read(addr));
                 Write(addr, res);
@@ -546,12 +550,14 @@ public class CPU
             case 0x03: 
             case 0x13: 
             case 0x0F: 
-            case 0x1F: 
+            case 0x1F:
+            case 0x1B:
                 if (opcode == 0x07) { addr = AddrZeroPage(); cycles += 5; }
                 else if (opcode == 0x17) { addr = AddrZeroPageX(); cycles += 6; }
                 else if (opcode == 0x03) { addr = AddrIndirectX(); cycles += 8; }
                 else if (opcode == 0x13) { addr = AddrIndirectY(out _); cycles += 8; }
                 else if (opcode == 0x0F) { addr = AddrAbsolute(); cycles += 6; }
+                else if (opcode == 0x1B) { addr = AddrAbsoluteY(out _); cycles += 7; }
                 else { addr = AddrAbsoluteX(out _); cycles += 7; }
                 res = ASL(Read(addr));
                 Write(addr, res);
@@ -563,16 +569,26 @@ public class CPU
             case 0x23: 
             case 0x33: 
             case 0x2F: 
-            case 0x3F: 
+            case 0x3F:
+            case 0x3B:
                 if (opcode == 0x27) { addr = AddrZeroPage(); cycles += 5; }
                 else if (opcode == 0x37) { addr = AddrZeroPageX(); cycles += 6; }
                 else if (opcode == 0x23) { addr = AddrIndirectX(); cycles += 8; }
                 else if (opcode == 0x33) { addr = AddrIndirectY(out _); cycles += 8; }
                 else if (opcode == 0x2F) { addr = AddrAbsolute(); cycles += 6; }
+                else if (opcode == 0x3B) { addr = AddrAbsoluteY(out _); cycles += 7; }
                 else { addr = AddrAbsoluteX(out _); cycles += 7; }
                 res = ROL(Read(addr));
                 Write(addr, res);
                 AND(res);
+                break;
+
+            case 0x0B:
+            case 0x2B:
+                val = Read(program_counter++);
+                AND(val);
+                status.SetFlag(CpuFlags.Carry, status.HasFlag(CpuFlags.Negative));
+                cycles += 2;
                 break;
 
             case 0x47: 
@@ -580,12 +596,14 @@ public class CPU
             case 0x43: 
             case 0x53: 
             case 0x4F: 
-            case 0x5F: 
+            case 0x5F:
+            case 0x5B:
                 if (opcode == 0x47) { addr = AddrZeroPage(); cycles += 5; }
                 else if (opcode == 0x57) { addr = AddrZeroPageX(); cycles += 6; }
                 else if (opcode == 0x43) { addr = AddrIndirectX(); cycles += 8; }
                 else if (opcode == 0x53) { addr = AddrIndirectY(out _); cycles += 8; }
                 else if (opcode == 0x4F) { addr = AddrAbsolute(); cycles += 6; }
+                else if (opcode == 0x5B) { addr = AddrAbsoluteY(out _); cycles += 7; }
                 else { addr = AddrAbsoluteX(out _); cycles += 7; }
                 res = LSR(Read(addr));
                 Write(addr, res);
@@ -597,12 +615,14 @@ public class CPU
             case 0x63: 
             case 0x73: 
             case 0x6F: 
-            case 0x7F: 
+            case 0x7F:
+            case 0x7B:
                 if (opcode == 0x67) { addr = AddrZeroPage(); cycles += 5; }
                 else if (opcode == 0x77) { addr = AddrZeroPageX(); cycles += 6; }
                 else if (opcode == 0x63) { addr = AddrIndirectX(); cycles += 8; }
                 else if (opcode == 0x73) { addr = AddrIndirectY(out _); cycles += 8; }
                 else if (opcode == 0x6F) { addr = AddrAbsolute(); cycles += 6; }
+                else if (opcode == 0x7B) { addr = AddrAbsoluteY(out _); cycles += 7; }
                 else { addr = AddrAbsoluteX(out _); cycles += 7; }
                 res = ROR(Read(addr));
                 Write(addr, res);
@@ -618,6 +638,19 @@ public class CPU
                 cycles += 2;
                 break;
 
+            case 0x80:
+            case 0x89:
+                program_counter++;
+                cycles += 2;
+                break;
+
+            case 0x32:
+            case 0x62:
+            case 0x02:
+            case 0x12:
+                program_counter--;
+                break;
+
             case 0x04: case 0x44: case 0x64:
                 addr = AddrZeroPage(); cycles += 3; break;
             case 0x14: case 0x34: case 0x54: case 0x74: case 0xD4: case 0xF4:
@@ -628,7 +661,7 @@ public class CPU
                 addr = AddrAbsoluteX(out pageCrossed); cycles += 4 + (pageCrossed ? 1 : 0); break;
 
             default:
-                Console.WriteLine($"Invalid Opcode: {opcode}");
+                Console.WriteLine($"Invalid Opcode: 0x{opcode:X2}");
                 cycles += 2;
                 break;
         }
