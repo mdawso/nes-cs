@@ -1,13 +1,17 @@
 ﻿namespace nes;
 
 using Raylib_cs;
-
+using System.Numerics;
 public class Program
 {
     static void Main(string[] args)
     {
-        Raylib.InitWindow(256 * 2, 240 * 2, "nes");
-        Raylib.SetWindowState(ConfigFlags.ResizableWindow);
+
+        const int initialScale = 2;
+
+        Raylib.SetConfigFlags(ConfigFlags.ResizableWindow);
+        Raylib.InitWindow(256 * initialScale, 240 * initialScale, "nes");
+        Raylib.SetWindowMonitor(0);
         Raylib.SetTargetFPS(60);
 
         Bus bus = new Bus();
@@ -63,7 +67,7 @@ public class Program
             float offsetX = (Raylib.GetScreenWidth() - (256 * scale)) / 2.0f;
             float offsetY = (Raylib.GetScreenHeight() - (240 * scale)) / 2.0f;
 
-            Raylib.DrawTextureEx(screenTexture, new System.Numerics.Vector2(offsetX, offsetY), 0.0f, scale, Color.White);
+            Raylib.DrawTextureEx(screenTexture, new Vector2(offsetX, offsetY), 0.0f, scale, Color.White);
 
             if (err_text != string.Empty) Raylib.DrawText(err_text, 10, 10, 24, Color.Red);
 
