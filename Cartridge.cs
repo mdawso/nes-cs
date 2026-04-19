@@ -14,6 +14,9 @@ public class Cartridge
     private byte _chrBanks;
 
     private bool _verticalMirroring;
+    
+    private bool _hasBattery = false;
+    private string _savePath;
 
     public bool VerticalMirroring => _verticalMirroring;
     public byte MapperId => _mapperId;
@@ -38,6 +41,9 @@ public class Cartridge
         _mapperId = (byte)((header[7] & 0xF0) | (header[6] >> 4));
         _verticalMirroring = (header[6] & 0x01) != 0;
 
+        _hasBattery = (header[6] & 0x02) != 0;
+        _savePath = Path.ChangeExtension(fileName, ".sav");
+
         if ((header[6] & 0x04) != 0)
             br.ReadBytes(512);
 
@@ -47,6 +53,20 @@ public class Cartridge
             _chrMemory = new byte[8192];
         else
             _chrMemory = br.ReadBytes(_chrBanks * 8192);
+
+        if (_hasBattery && File.Exists(_savePath))
+        {
+            byte[] savedData = File.ReadAllBytes(_savePath);
+            Array.Copy(savedData, PrgRam, Math.Min(savedData.Length, PrgRam.Length));
+        }
+    }
+
+    public void SaveSram()
+    {
+        if (_hasBattery)
+        {
+            File.WriteAllBytes(_savePath, PrgRam);
+        }
     }
 
     public byte ReadPrg(uint mappedAddr)

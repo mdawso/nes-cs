@@ -74,6 +74,9 @@ public class Program
             Raylib.EndDrawing();
         }
 
+
+        bus.cartridge?.SaveSram();
+        
         Raylib.UnloadTexture(screenTexture);
         Raylib.UnloadImage(screenImage);
         Raylib.CloseWindow();
