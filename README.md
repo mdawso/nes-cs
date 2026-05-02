@@ -1,5 +1,8 @@
 # NES-CS
 
+## Dependencies
+- .NET SDK 10.0+
+
 ## Quick Start
 ```bash
 dotnet run -- <path-to-rom>
