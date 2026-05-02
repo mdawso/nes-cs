@@ -5,7 +5,7 @@
 
 ## Quick Start
 ```bash
-dotnet run -- <path-to-rom>
+dotnet run -c Release -- <path-to-rom>
 ```
 
 ## Controls 
