@@ -4,27 +4,27 @@ namespace nes;
 
 public class PPU
 {
-    private Bus _bus;
-    public uint[] screenBuffer = new uint[256 * 240];
-    public bool frameComplete = false;
+    private readonly Bus _bus;
+    public readonly uint[] screenBuffer = new uint[256 * 240];
+    public bool frameComplete;
 
-    private byte[,] _nameTables = new byte[2, 1024];
-    private byte[] _paletteTable = new byte[32];
-    private byte[] _oam = new byte[256];
+    private readonly byte[,] _nameTables = new byte[2, 1024];
+    private readonly byte[] _paletteTable = new byte[32];
+    private readonly byte[] _oam = new byte[256];
 
-    public int scanline = 0;
-    public int cycle = 0;
+    public int scanline;
+    public int cycle;
 
-    private byte _status = 0;
-    private byte _ctrl = 0;
-    private byte _mask = 0;
+    private byte _status;
+    private byte _ctrl;
+    private byte _mask;
 
-    private ushort _vramAddr = 0;
-    private ushort _tempVramAddr = 0;
-    private byte _fineX = 0;
-    private bool _addressLatch = false;
-    private byte _dataBuffer = 0;
-    private byte _oamAddr = 0;
+    private ushort _vramAddr;
+    private ushort _tempVramAddr;
+    private byte _fineX;
+    private bool _addressLatch;
+    private byte _dataBuffer;
+    private byte _oamAddr;
 
     private ushort _bgShifterPatternLo;
     private ushort _bgShifterPatternHi;
@@ -47,19 +47,27 @@ public class PPU
         0xFFCCD278, 0xFFB4DE78, 0xFFA8E290, 0xFF98E2B4, 0xFFA0D6E4, 0xFFA0A2A0, 0xFF000000, 0xFF000000
     };
 
-    private static uint ToRgba(uint argb)
+    static PPU()
     {
-        uint a = (argb >> 24) & 0xFF;
-        uint r = (argb >> 16) & 0xFF;
-        uint g = (argb >> 8) & 0xFF;
-        uint b = argb & 0xFF;
-        return (a << 24) | (b << 16) | (g << 8) | r;
+        for (int i = 0; i < SystemColourPalette.Length; i++)
+        {
+            uint argb = SystemColourPalette[i];
+            uint a = (argb >> 24) & 0xFF;
+            uint r = (argb >> 16) & 0xFF;
+            uint g = (argb >> 8) & 0xFF;
+            uint b = argb & 0xFF;
+            SystemColourPalette[i] = (a << 24) | (b << 16) | (g << 8) | r;
+        }
+    }
+
+    public PPU(Bus bus)
+    {
+        _bus = bus;
     }
 
     private int MapNametableIndex(ushort addr)
     {
         int table = (addr >> 10) & 0x03;
-        
         MirrorMode mode = _bus.cartridge?.Mapper?.MirrorMode ?? MirrorMode.Hardware;
 
         if (mode == MirrorMode.Hardware)
@@ -127,14 +135,14 @@ public class PPU
             byte patternHi = PpuRead((ushort)(patternAddr + 8));
 
             int bit = 7 - fineX;
-            byte p = (byte)(((patternHi >> bit) & 1) << 1 | ((patternLo >> bit) & 1));
+            byte p = (byte)((((patternHi >> bit) & 1) << 1) | ((patternLo >> bit) & 1));
 
             if (p == 0) continue;
 
             palette = (byte)(attr & 0x03);
             priority = (attr & 0x20) != 0;
             pixel = p;
-            isSpriteZero = (i == 0);
+            isSpriteZero = i == 0;
             return true;
         }
 
@@ -143,11 +151,6 @@ public class PPU
         pixel = 0;
         isSpriteZero = false;
         return false;
-    }
-
-    public PPU(Bus bus)
-    {
-        _bus = bus;
     }
 
     public byte CpuRead(ushort addr)
@@ -237,7 +240,8 @@ public class PPU
             int offset = addr & 0x03FF;
             return _nameTables[table, offset];
         }
-        else if (addr >= 0x3F00 && addr <= 0x3FFF)
+        
+        if (addr >= 0x3F00 && addr <= 0x3FFF)
         {
             addr &= 0x001F;
             if (addr == 0x0010 || addr == 0x0014 || addr == 0x0018 || addr == 0x001C)
@@ -372,11 +376,9 @@ public class PPU
             bgPalette = (byte)((p1_pal << 1) | p0_pal);
         }
 
-        byte bgColourIndex;
-        if (bgPixel == 0)
-            bgColourIndex = PpuRead(0x3F00);
-        else
-            bgColourIndex = PpuRead((ushort)(0x3F00 + (bgPalette << 2) + bgPixel));
+        byte bgColourIndex = bgPixel == 0 
+            ? PpuRead(0x3F00) 
+            : PpuRead((ushort)(0x3F00 + (bgPalette << 2) + bgPixel));
 
         uint finalColour = SystemColourPalette[bgColourIndex & 0x3F];
 
@@ -397,7 +399,7 @@ public class PPU
             }
         }
 
-        screenBuffer[y * 256 + x] = ToRgba(finalColour);
+        screenBuffer[y * 256 + x] = finalColour;
     }
 
     public void CatchUp(int ppuCycles)
@@ -459,7 +461,7 @@ public class PPU
 
                 if (cycle == 260 && scanline < 240)
                 {
-                    if ((_mask & 0x18) != 0) // Only tick IRQs if rendering enabled.
+                    if ((_mask & 0x18) != 0)
                     {
                         _bus.mapper?.Scanline();
                     }
@@ -496,4 +498,3 @@ public class PPU
         }
     }
 }
-
